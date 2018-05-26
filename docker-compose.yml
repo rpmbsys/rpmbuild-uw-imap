@@ -22,7 +22,7 @@ services:
       - rpm6:/home/centos/rpmbuild/RPMS
     build:
       context: .
-    image: rpmbuild:6-freetdsbuild
+    image: rpmbuild:6-imapbuild
 
 volumes:
   rpms:
