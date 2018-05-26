@@ -1,0 +1,33 @@
+version: "3.4"
+services:
+  centos6repo:
+    volumes:
+      - rpm6:/home/centos/rpmbuild/RPMS
+    build:
+      context: rpmbuild/createrepo
+    image: rpmbuild:createrepo
+    restart: always
+  webrepo:
+    volumes:
+      - rpm6:/home/centos-6/rpmbuild/RPMS
+      - rpm7:/home/centos-7/rpmbuild/RPMS
+    build:
+      context: rpmbuild/webrepo
+    image: rpmbuild:webrepo
+    ports:
+      - "80:80"
+  imapbuild:
+    volumes:
+      - rpms:/home/centos/rpmbuild/SRPMS
+      - rpm6:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+    image: rpmbuild:6-freetdsbuild
+
+volumes:
+  rpms:
+    name: rpms
+  rpm6:
+    name: rpm6
+  rpm7:
+    name: rpm7
