@@ -105,3 +105,20 @@ command above will start all build serrvices in background. But it is possible
 to run any of them or run build in foreground (omiting -d option) etc
 
 3. Wait until command `docker-compose ps` returns all services in state 'Exit 0'
+
+### Access RPM packages
+
+1. Just browse on build host URL http://localhost/ or
+2. use `docker cp` command from container `webrepo` from paths
+`/home/centos-6/rpmbuild/RPMS` and `/home/centos-7/rpmbuild/RPMS
+
+### Complete build
+
+To complete all build processes run commands:
+
+```
+docker-compose down
+docker-compose -f rpmbuild/docker-compose.yml down
+```
+These commands will stop and remove all containers but not build images (see
+`docker images` and `docker rmi` commands manuals)
