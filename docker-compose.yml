@@ -1,15 +1,26 @@
 version: "3.4"
 services:
-  imapbuild:
+  centos6imap:
     volumes:
       - rpms:/home/centos/rpmbuild/SRPMS
       - rpm6:/home/centos/rpmbuild/RPMS
     build:
       context: .
     image: rpmbuild:6-imapbuild
+  centos7imap:
+    volumes:
+      - rpms:/home/centos/rpmbuild/SRPMS
+      - rpm7:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      dockerfile: Dockerfile.el7
+    image: rpmbuild:7-imapbuild
+
 
 volumes:
   rpms:
     name: rpms
   rpm6:
     name: rpm6
+  rpm7:
+    name: rpm7
