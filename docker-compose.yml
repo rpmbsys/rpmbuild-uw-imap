@@ -6,6 +6,7 @@ services:
       - rpm6:/home/centos/rpmbuild/RPMS
     build:
       context: .
+      dockerfile: Dockerfile.el6
     image: rpmbuild:6-imapbuild
   centos7imap:
     volumes:
@@ -13,7 +14,6 @@ services:
       - rpm7:/home/centos/rpmbuild/RPMS
     build:
       context: .
-      dockerfile: Dockerfile.el7
     image: rpmbuild:7-imapbuild
 
 
