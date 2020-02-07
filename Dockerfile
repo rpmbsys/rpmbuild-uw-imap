@@ -1,9 +1,4 @@
-FROM aursu/rpmbuild:7-build
-
-USER root
-RUN yum -y install \
-        openssl-devel \
-    && yum clean all && rm -rf /var/cache/yum
+FROM rpmbuild:6-imapbase
 
 COPY SOURCES ${BUILD_TOPDIR}/SOURCES
 COPY SPECS ${BUILD_TOPDIR}/SPECS

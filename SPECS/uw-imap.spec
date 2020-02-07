@@ -15,7 +15,7 @@
 Summary: UW Server daemons for IMAP and POP network mail protocols
 Name:	 uw-imap
 Version: 2007f
-Release: 17%{?dist}
+Release: 21%{?dist}
 
 # See LICENSE.txt, http://www.apache.org/licenses/LICENSE-2.0
 License: ASL 2.0
@@ -42,7 +42,10 @@ Patch9: imap-2007e-shared.patch
 Patch10: imap-2007e-authmd5.patch
 Patch12: imap-2007f-format-security.patch
 Patch13: imap-2007e-poll.patch
+Patch14: 1006_openssl1.1_autoverify.patch
+Patch15: imap-2007f-ldflags.patch
 
+BuildRequires: gcc
 %if 0%{?fedora} > 25 || 0%{?rhel} > 7
 BuildRequires: compat-openssl10-devel
 %else
@@ -107,6 +110,8 @@ which will use the UW C-client common API.
 
 %patch12 -p1 -b .fmt-sec
 %patch13 -p1 -b .poll
+%patch14 -p1 -b .openssl11
+%patch15 -p1 -b .ldflags
 
 %build
 # SSL setup, probably legacy-only, but shouldn't hurt -- Rex
@@ -123,7 +128,7 @@ echo -e "y\ny" | \
 make %{?_smp_mflags} slx \
 IP=6 \
 EXTRACFLAGS="$EXTRACFLAGS" \
-EXTRALDFLAGS="$EXTRALDFLAGS" \
+EXTRALDFLAGS="$EXTRALDFLAGS $RPM_LD_FLAGS" \
 SPECIALS="LOCKPGM=%{_sbindir}/mlock SSLCERTS=%{ssldir}/certs SSLDIR=%{ssldir} SSLINCLUDE=%{_includedir}/openssl SSLKEYS=%{ssldir}/private SSLLIB=%{_libdir}" \
 SSLTYPE=unix \
 CCLIENTLIB=$(pwd)/c-client/%{shlibname} \
@@ -133,8 +138,6 @@ SHLIBNAME=%{shlibname} \
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
-
 mkdir -p $RPM_BUILD_ROOT%{_libdir}/
 
 %if 0%{?_with_static:1}
@@ -180,6 +183,16 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 %endif
 
 %changelog
+* Tue Apr 24 2018 Karsten Hopp <karsten@redhat.com> - 2007f-21
+- make sure LDFLAGS are used everywhere (rhbz#1541093)
+
+* Tue Feb 20 2018 Remi Collet <remi@remirepo.net> - 2007f-19
+- missing BR on C compiler
+
+* Tue Jan 30 2018 Remi Collet <rcollet@redhat.com> - 2007f-18
+- fix compatibility with OpenSSL 1.1 rhbz#1540020
+  using patch from debian
+
 * Fri Mar 28 2014 Alexander Ursu <aursu@hostopia.com> - 2007f-17
 - disabled pop3, imap daemons and utils
 - disabled PAM
