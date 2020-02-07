@@ -16,7 +16,7 @@ services:
       - rpm6:/home/centos/rpmbuild/RPMS
     build:
       context: .
-      dockerfile: Dockerfile.el8
+      dockerfile: Dockerfile.el7
   centos7imap:
     volumes:
       - rpms:/home/centos/rpmbuild/SRPMS
