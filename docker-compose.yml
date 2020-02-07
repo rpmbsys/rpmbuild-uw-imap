@@ -29,5 +29,5 @@ volumes:
     name: rpms
   rpm6:
     name: rpm6
-  rpm8:
-    name: rpm8
+  rpm7:
+    name: rpm7
