@@ -119,7 +119,7 @@ export EXTRACFLAGS="$EXTRACFLAGS -Wno-pointer-sign"
 %endif
 
 echo -e "y\ny" | \
-make %{?_smp_mflags} lnp \
+make %{?_smp_mflags} slx \
 IP=6 \
 EXTRACFLAGS="$EXTRACFLAGS" \
 EXTRALDFLAGS="$EXTRALDFLAGS $RPM_LD_FLAGS" \
