@@ -1,21 +1,16 @@
 
 # Fedora review: http://bugzilla.redhat.com/166008
 
-%if 0%{?fedora} || 0%{?rhel} >= 6
-%define _with_devel 1
+%bcond_without devel
 # ship static lib, matches default upstream config
 # as convenience to users, since our hacked shlib can potentially break
 # abi semi-often
-%global _with_static 1
-%endif
-
-# trim changelog included in binary rpms
-%global _changelog_trimtime %(date +%s -d "1 year ago")
+%bcond_with    static
 
 Summary: UW Server daemons for IMAP and POP network mail protocols
 Name:	 uw-imap
 Version: 2007f
-Release: 21%{?dist}
+Release: 30%{?dist}
 
 # See LICENSE.txt, http://www.apache.org/licenses/LICENSE-2.0
 License: ASL 2.0
@@ -45,12 +40,10 @@ Patch13: imap-2007e-poll.patch
 Patch14: 1006_openssl1.1_autoverify.patch
 Patch15: imap-2007f-ldflags.patch
 
+BuildRequires: make
 BuildRequires: gcc
-%if 0%{?fedora} > 25 || 0%{?rhel} > 7
-BuildRequires: compat-openssl10-devel
-%else
+
 BuildRequires: openssl-devel
-%endif
 
 Requires: %{imap_libs}%{?_isa} = %{version}-%{release}
 
@@ -64,7 +57,6 @@ remote machine without downloading it to their local machine.
 
 %package -n %{imap_libs}
 Summary: UW C-client mail library
-Group:	 System Environment/Libraries
 Obsoletes: libc-client2004d < 1:2004d-2
 Obsoletes: libc-client2004e < 2004e-2
 Obsoletes: libc-client2004g < 2004g-7
@@ -76,12 +68,15 @@ Provides a common API for accessing mailboxes.
 
 %package devel
 Summary: Development tools for programs which will use the UW IMAP library
-Group: 	 Development/Libraries
 Requires: %{imap_libs}%{?_isa} = %{version}-%{release}
 # imap -> uw-imap rename
 Obsoletes: imap-devel < 1:%{version}
+%if "%{imap_libs}" == "libc-client"
 Obsoletes: libc-client-devel < %{version}-%{release}
 Provides:  libc-client-devel = %{version}-%{release}
+%else
+Conflicts: libc-client-devel < %{version}-%{release}
+%endif
 
 %description devel
 Contains the header files and libraries for developing programs
@@ -89,7 +84,6 @@ which will use the UW C-client common API.
 
 %package static
 Summary: UW IMAP static library
-Group:   Development/Libraries
 Requires: %{name}-devel = %{version}-%{release}
 Requires: openssl-devel
 
@@ -125,7 +119,7 @@ export EXTRACFLAGS="$EXTRACFLAGS -Wno-pointer-sign"
 %endif
 
 echo -e "y\ny" | \
-make %{?_smp_mflags} slx \
+make %{?_smp_mflags} lnp \
 IP=6 \
 EXTRACFLAGS="$EXTRACFLAGS" \
 EXTRALDFLAGS="$EXTRALDFLAGS $RPM_LD_FLAGS" \
@@ -133,14 +127,12 @@ SPECIALS="LOCKPGM=%{_sbindir}/mlock SSLCERTS=%{ssldir}/certs SSLDIR=%{ssldir} SS
 SSLTYPE=unix \
 CCLIENTLIB=$(pwd)/c-client/%{shlibname} \
 SHLIBBASE=%{soname} \
-SHLIBNAME=%{shlibname} \
-# Blank line
-
+SHLIBNAME=%{shlibname}
 
 %install
 mkdir -p $RPM_BUILD_ROOT%{_libdir}/
 
-%if 0%{?_with_static:1}
+%if %{with static}
 install -p -m644 ./c-client/c-client.a $RPM_BUILD_ROOT%{_libdir}/
 ln -s c-client.a $RPM_BUILD_ROOT%{_libdir}/libc-client.a
 %endif
@@ -151,7 +143,7 @@ install -p -m755 ./c-client/%{shlibname} $RPM_BUILD_ROOT%{_libdir}/
 touch c-client.cf
 install -p -m644 -D c-client.cf $RPM_BUILD_ROOT%{_sysconfdir}/c-client.cf
 
-%if 0%{?_with_devel:1}
+%if %{with devel}
 ln -s %{shlibname} $RPM_BUILD_ROOT%{_libdir}/lib%{soname}.so
 
 mkdir -p $RPM_BUILD_ROOT%{_includedir}/imap/
@@ -161,8 +153,7 @@ install -m644 ./c-client/linkage.c $RPM_BUILD_ROOT%{_includedir}/imap/
 install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 %endif
 
-%post -n %{imap_libs} -p /sbin/ldconfig
-%postun -n %{imap_libs} -p /sbin/ldconfig
+%ldconfig_scriptlets -n %{imap_libs}
 
 %files -n %{imap_libs}
 %doc LICENSE.txt NOTICE SUPPORT
@@ -170,19 +161,23 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 %ghost %config(missingok,noreplace) %{_sysconfdir}/c-client.cf
 %{_libdir}/lib%{soname}.so.*
 
-%if 0%{?_with_devel:1}
+%if %{with devel}
 %files devel
 %{_includedir}/imap/
 %{_libdir}/lib%{soname}.so
 %endif
 
-%if 0%{?_with_static:1}
+%if %{with static}
 %files static
 %{_libdir}/c-client.a
 %{_libdir}/libc-client.a
 %endif
 
 %changelog
+* Wed Feb 24 2021 Remi Collet <remi@remirepo.net> - 2007f-30
+- drop uw-imap and uw-imap-static and uw-imap-utils
+  as only uw-imap-devel and libc-client needed
+
 * Tue Apr 24 2018 Karsten Hopp <karsten@redhat.com> - 2007f-21
 - make sure LDFLAGS are used everywhere (rhbz#1541093)
 

@@ -1,0 +1,26 @@
+name: RPM build
+on: [push]
+env:
+  ARTIFACTORY_URL: https://rpmb.jfrog.io
+  BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
+  BINTRAY_API_KEY: ${{ secrets.BINTRAY_API_KEY }}
+  DOCKER_USER: ${{ secrets.DOCKER_USER }}
+  DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+  BINTRAY_REPO: custom
+  OS9: stream9-20221206.0
+  OS9TAG: stream9-20221206.0
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      BUILD: stream9build
+      UPLOADER: stream9bintray
+      REPO_PATH: centos/9-stream
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: docker-compose -f docker-compose.yml build --no-cache $BUILD
+      - run: docker-compose -f docker-compose.yml up --exit-code-from $BUILD $BUILD
+      - run: docker-compose -f rpmbuild/docker-compose.bintray.yml pull $UPLOADER
+      - run: docker-compose -f rpmbuild/docker-compose.bintray.yml run --rm -e BINTRAY_USER=$BINTRAY_USER -e BINTRAY_API_KEY=$BINTRAY_API_KEY -e BINTRAY_REPO=$BINTRAY_REPO -e ARTIFACTORY_URL=$ARTIFACTORY_URL -e REPO_PATH=$REPO_PATH $UPLOADER

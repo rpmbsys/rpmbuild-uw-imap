@@ -1,33 +1,13 @@
-version: "3.4"
+version: "3"
 services:
-  centos6imapbase:
-    build:
-      context: .
-      dockerfile: Dockerfile.base
-    image: rpmbuild:6-imapbase
-  centos7imapbase:
-    build:
-      context: .
-      dockerfile: Dockerfile.7-base
-    image: rpmbuild:7-imapbase
-  centos6imap:
+  stream9build:
     volumes:
-      - rpms:/home/centos/rpmbuild/SRPMS
-      - rpm6:/home/centos/rpmbuild/RPMS
+      - rpm9stream:/home/centos/rpmbuild/RPMS
     build:
       context: .
-  centos7imap:
-    volumes:
-      - rpms:/home/centos/rpmbuild/SRPMS
-      - rpm7:/home/centos/rpmbuild/RPMS
-    build:
-      context: .
-      dockerfile: Dockerfile.el7
+      args:
+        centos: $OS9
 
 volumes:
-  rpms:
-    name: rpms
-  rpm6:
-    name: rpm6
-  rpm7:
-    name: rpm7
+  rpm9stream:
+    name: rpm9stream
