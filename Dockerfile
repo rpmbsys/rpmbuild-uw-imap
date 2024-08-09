@@ -1,5 +1,5 @@
-ARG centos=stream9-20221206.0
-FROM aursu/rpmbuild:${centos}-build
+ARG os=9.4.20240523
+FROM aursu/rpmbuild:${os}-build
 
 USER root
 RUN dnf -y install \

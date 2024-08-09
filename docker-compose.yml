@@ -1,4 +1,3 @@
-version: "3"
 services:
   stream9build:
     volumes:
@@ -6,8 +5,17 @@ services:
     build:
       context: .
       args:
-        centos: $OS9
+        os: $OS9
+  rpm9rocky:
+    volumes:
+      - rpm9rocky:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      args:
+        os: $RL9
 
 volumes:
   rpm9stream:
     name: rpm9stream
+  rpm9rocky:
+    name: rpm9rocky
