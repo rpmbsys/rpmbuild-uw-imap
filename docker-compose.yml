@@ -6,7 +6,7 @@ services:
       context: .
       args:
         os: $OS9
-  rpm9rocky:
+  rocky9build:
     volumes:
       - rpm9rocky:/home/centos/rpmbuild/RPMS
     build:
