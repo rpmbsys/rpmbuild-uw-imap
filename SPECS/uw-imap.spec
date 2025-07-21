@@ -94,18 +94,15 @@ which will use the UW C-client common API.
 %prep
 %setup -q -n imap-%{version}%{?dev}%{?snap}
 
-%patch1 -p1 -b .paths
-%patch2 -p1 -b .doc
-
-%patch5 -p1 -b .overflow
-
-%patch9 -p1 -b .shared
-%patch10 -p1 -b .authmd5
-
-%patch12 -p1 -b .fmt-sec
-%patch13 -p1 -b .poll
-%patch14 -p1 -b .openssl11
-%patch15 -p1 -b .ldflags
+%patch -P 1 -p1 -b .paths
+%patch -P 2 -p1 -b .doc
+%patch -P 5 -p1 -b .overflow
+%patch -P 9 -p1 -b .shared
+%patch -P 10 -p1 -b .authmd5
+%patch -P 12 -p1 -b .fmt-sec
+%patch -P 13 -p1 -b .poll
+%patch -P 14 -p1 -b .openssl11
+%patch -P 15 -p1 -b .ldflags
 
 %build
 # SSL setup, probably legacy-only, but shouldn't hurt -- Rex
