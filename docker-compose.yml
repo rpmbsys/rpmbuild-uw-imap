@@ -1,11 +1,4 @@
 services:
-  stream9build:
-    volumes:
-      - rpm9stream:/home/centos/rpmbuild/RPMS
-    build:
-      context: .
-      args:
-        os: $OS9
   rocky9build:
     volumes:
       - rpm9rocky:/home/centos/rpmbuild/RPMS
@@ -13,18 +6,7 @@ services:
       context: .
       args:
         os: $RL9
-  rocky10build:
-    volumes:
-      - rpm10rocky:/home/centos/rpmbuild/RPMS
-    build:
-      context: .
-      args:
-        os: $RL10
 
 volumes:
-  rpm9stream:
-    name: rpm9stream
   rpm9rocky:
     name: rpm9rocky
-  rpm10rocky:
-    name: rpm10rocky
