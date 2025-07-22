@@ -10,7 +10,7 @@
 Summary: UW Server daemons for IMAP and POP network mail protocols
 Name:	 uw-imap
 Version: 2007f
-Release: 30%{?dist}
+Release: 31%{?dist}
 
 # See LICENSE.txt, http://www.apache.org/licenses/LICENSE-2.0
 License: ASL 2.0
@@ -171,6 +171,9 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 %endif
 
 %changelog
+* Tue Jul 22 2025 Alexander Ursu <alexander.ursu@gmail.com> - 2007f-31
+- rebuild for Rocky Linux 9.6
+
 * Wed Feb 24 2021 Remi Collet <remi@remirepo.net> - 2007f-30
 - drop uw-imap and uw-imap-static and uw-imap-utils
   as only uw-imap-devel and libc-client needed
