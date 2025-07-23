@@ -1,19 +1,28 @@
+# remirepo spec file for uw-imap
+# only for libc-client for php-imap
+#
+# Fedora spec file for uw-imap
+#
+# License: MIT
+# http://opensource.org/licenses/MIT
+#
+# Please preserve changelog entries
+#
 
-# Fedora review: http://bugzilla.redhat.com/166008
-
+# Needed
 %bcond_without devel
-# ship static lib, matches default upstream config
-# as convenience to users, since our hacked shlib can potentially break
-# abi semi-often
+
+# Not used
 %bcond_with    static
+%bcond_with    daemon
 
 Summary: UW Server daemons for IMAP and POP network mail protocols
-Name:	 uw-imap
+Name:	 uw-imap 
 Version: 2007f
-Release: 31%{?dist}
+Release: 32%{?dist}
 
 # See LICENSE.txt, http://www.apache.org/licenses/LICENSE-2.0
-License: ASL 2.0
+License: ASL 2.0 
 URL:	 http://www.washington.edu/imap/
 # Old (non-latest) releases live at  ftp://ftp.cac.washington.edu/imap/old/
 Source0: ftp://ftp.cac.washington.edu/imap/imap-%{version}%{?beta}%{?dev}%{?snap}.tar.gz
@@ -29,23 +38,42 @@ Source0: ftp://ftp.cac.washington.edu/imap/imap-%{version}%{?beta}%{?dev}%{?snap
 # imap -> uw-imap rename
 Obsoletes: imap < 1:%{version}
 
+# newest pam setup, using password-auth common PAM
+Source20: imap-password.pam
+
+Source31: imap-xinetd
+Source32: imaps-xinetd
+Source33: ipop2-xinetd
+Source34: ipop3-xinetd
+Source35: pop3s-xinetd
+
 Patch1: imap-2007-paths.patch
 # See http://bugzilla.redhat.com/229781 , http://bugzilla.redhat.com/127271
 Patch2: imap-2004a-doc.patch
 Patch5: imap-2007e-overflow.patch
 Patch9: imap-2007e-shared.patch
 Patch10: imap-2007e-authmd5.patch
+Patch11: imap-2007e-system_c_client.patch
 Patch12: imap-2007f-format-security.patch
 Patch13: imap-2007e-poll.patch
+# From debian
 Patch14: 1006_openssl1.1_autoverify.patch
+
 Patch15: imap-2007f-ldflags.patch
+Patch16: imap-2007f-gcc14.patch
 
 BuildRequires: make
 BuildRequires: gcc
+BuildRequires: krb5-devel
+BuildRequires: pam-devel
+
+Requires: xinetd
+Requires(post): openssl
 
 BuildRequires: openssl-devel
 
 Requires: %{imap_libs}%{?_isa} = %{version}-%{release}
+
 
 %description
 The %{name} package provides UW server daemons for both the IMAP (Internet
@@ -55,16 +83,17 @@ mail for users and allows users to download their mail to their local
 machine for reading. The IMAP protocol allows a user to read mail on a
 remote machine without downloading it to their local machine.
 
-%package -n %{imap_libs}
-Summary: UW C-client mail library
+%package -n %{imap_libs} 
+Summary: UW C-client mail library 
 Obsoletes: libc-client2004d < 1:2004d-2
 Obsoletes: libc-client2004e < 2004e-2
 Obsoletes: libc-client2004g < 2004g-7
 Obsoletes: libc-client2006 < 2006k-2
+%if "%{imap_libs}" != "libc-client2007"
 Obsoletes: libc-client2007 < 2007-2
-
-%description -n %{imap_libs}
-Provides a common API for accessing mailboxes.
+%endif
+%description -n %{imap_libs} 
+Provides a common API for accessing mailboxes. 
 
 %package devel
 Summary: Development tools for programs which will use the UW IMAP library
@@ -77,54 +106,81 @@ Provides:  libc-client-devel = %{version}-%{release}
 %else
 Conflicts: libc-client-devel < %{version}-%{release}
 %endif
-
 %description devel
-Contains the header files and libraries for developing programs
+Contains the header files and libraries for developing programs 
 which will use the UW C-client common API.
 
-%package static
+%package static 
 Summary: UW IMAP static library
 Requires: %{name}-devel = %{version}-%{release}
-Requires: openssl-devel
-
-%description static
-Contains static libraries for developing programs
+#Provides: libc-client-static = %%{version}-%%{release}
+Requires: krb5-devel openssl-devel pam-devel
+%description static 
+Contains static libraries for developing programs 
 which will use the UW C-client common API.
+
+%package utils
+Summary: UW IMAP Utilities to make managing your email simpler
+Requires: %{imap_libs}%{?_isa} = %{version}-%{release}
+# imap -> uw-imap rename
+Obsoletes: imap-utils < 1:%{version}
+%description utils
+This package contains some utilities for managing UW IMAP email,including:
+* dmail : procmail Mail Delivery Module
+* mailutil : mail utility program
+* mtest : C client test program
+* tmail : Mail Delivery Module
+* mlock
+
+
 
 %prep
 %setup -q -n imap-%{version}%{?dev}%{?snap}
 
-%patch -P 1 -p1 -b .paths
-%patch -P 2 -p1 -b .doc
-%patch -P 5 -p1 -b .overflow
-%patch -P 9 -p1 -b .shared
-%patch -P 10 -p1 -b .authmd5
-%patch -P 12 -p1 -b .fmt-sec
-%patch -P 13 -p1 -b .poll
-%patch -P 14 -p1 -b .openssl11
-%patch -P 15 -p1 -b .ldflags
+%patch -P1 -p1 -b .paths
+%patch -P2 -p1 -b .doc
+
+%patch -P5 -p1 -b .overflow
+
+%patch -P9 -p1 -b .shared
+%patch -P10 -p1 -b .authmd5
+
+install -p -m644 %{SOURCE20} imap.pam
+
+%patch -P12 -p1 -b .fmt-sec
+%patch -P13 -p1 -b .poll
+%patch -P14 -p1 -b .openssl11
+%patch -P15 -p1 -b .ldflags
+%patch -P16 -p1 -b .gcc14
+
 
 %build
+
+# Kerberos setup
+test -f %{_sysconfdir}/profile.d/krb5-devel.sh && source %{_sysconfdir}/profile.d/krb5-devel.sh
+test -f %{_sysconfdir}/profile.d/krb5.sh && source %{_sysconfdir}/profile.d/krb5.sh
+GSSDIR=$(krb5-config --prefix)
+
 # SSL setup, probably legacy-only, but shouldn't hurt -- Rex
 export EXTRACFLAGS="$EXTRACFLAGS $(pkg-config --cflags openssl 2>/dev/null)"
 # $RPM_OPT_FLAGS
 export EXTRACFLAGS="$EXTRACFLAGS -fPIC $RPM_OPT_FLAGS"
 # jorton added these, I'll assume he knows what he's doing. :) -- Rex
 export EXTRACFLAGS="$EXTRACFLAGS -fno-strict-aliasing"
-%if 0%{?fedora} > 4 || 0%{?rhel} > 4
 export EXTRACFLAGS="$EXTRACFLAGS -Wno-pointer-sign"
-%endif
 
 echo -e "y\ny" | \
-make %{?_smp_mflags} slx \
+make lnp \
 IP=6 \
 EXTRACFLAGS="$EXTRACFLAGS" \
 EXTRALDFLAGS="$EXTRALDFLAGS $RPM_LD_FLAGS" \
-SPECIALS="LOCKPGM=%{_sbindir}/mlock SSLCERTS=%{ssldir}/certs SSLDIR=%{ssldir} SSLINCLUDE=%{_includedir}/openssl SSLKEYS=%{ssldir}/private SSLLIB=%{_libdir}" \
+EXTRAAUTHENTICATORS=gss \
+SPECIALS="GSSDIR=${GSSDIR} LOCKPGM=%{_sbindir}/mlock SSLCERTS=%{ssldir}/certs SSLDIR=%{ssldir} SSLINCLUDE=%{_includedir}/openssl SSLKEYS=%{ssldir}/private SSLLIB=%{_libdir}" \
 SSLTYPE=unix \
 CCLIENTLIB=$(pwd)/c-client/%{shlibname} \
 SHLIBBASE=%{soname} \
 SHLIBNAME=%{shlibname}
+
 
 %install
 mkdir -p $RPM_BUILD_ROOT%{_libdir}/
@@ -150,10 +206,91 @@ install -m644 ./c-client/linkage.c $RPM_BUILD_ROOT%{_includedir}/imap/
 install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 %endif
 
+%if %{with daemon}
+install -p -D -m644 src/imapd/imapd.8 $RPM_BUILD_ROOT%{_mandir}/man8/imapd.8uw
+install -p -D -m644 src/ipopd/ipopd.8 $RPM_BUILD_ROOT%{_mandir}/man8/ipopd.8uw
+
+mkdir -p $RPM_BUILD_ROOT%{_sbindir}
+install -p -m755 ipopd/ipop{2d,3d} $RPM_BUILD_ROOT%{_sbindir}/
+install -p -m755 imapd/imapd $RPM_BUILD_ROOT%{_sbindir}/
+install -p -m755 mlock/mlock $RPM_BUILD_ROOT%{_sbindir}/
+
+mkdir -p $RPM_BUILD_ROOT%{_bindir}/
+install -p -m755 dmail/dmail mailutil/mailutil mtest/mtest tmail/tmail $RPM_BUILD_ROOT%{_bindir}/
+mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1/
+install -p -m644 src/{dmail/dmail,mailutil/mailutil,tmail/tmail}.1 $RPM_BUILD_ROOT%{_mandir}/man1/
+
+install -p -m644 -D imap.pam $RPM_BUILD_ROOT%{_sysconfdir}/pam.d/imap
+install -p -m644 -D imap.pam $RPM_BUILD_ROOT%{_sysconfdir}/pam.d/pop
+
+install -p -m644 -D %{SOURCE31} $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/imap
+install -p -m644 -D %{SOURCE32} $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/imaps
+install -p -m644 -D %{SOURCE33} $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/ipop2
+install -p -m644 -D %{SOURCE34} $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/ipop3
+install -p -m644 -D %{SOURCE35} $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/pop3s
+
+# %ghost'd *.pem files
+mkdir -p $RPM_BUILD_ROOT%{ssldir}/certs
+touch $RPM_BUILD_ROOT%{ssldir}/certs/{imapd,ipop3d}.pem
+%endif
+
+
+%if %{with daemon}
+# FIXME, do on first launch (or not at all?), not here -- Rex
+%post
+{
+cd %{ssldir}/certs &> /dev/null || :
+for CERT in imapd.pem ipop3d.pem ;do
+   if [ ! -e $CERT ];then
+      if [ -e stunnel.pem ];then
+         cp stunnel.pem $CERT &> /dev/null || :
+      elif [ -e Makefile ];then
+         make $CERT << EOF &> /dev/null || :
+--
+SomeState
+SomeCity
+SomeOrganization
+SomeOrganizationalUnit
+localhost.localdomain
+root@localhost.localdomain
+EOF
+      fi
+   fi
+done
+} || :
+/sbin/service xinetd reload > /dev/null 2>&1 || :
+
+%postun
+/sbin/service xinetd reload > /dev/null 2>&1 || :
+
+%files
+%doc docs/SSLBUILD
+%config(noreplace) %{_sysconfdir}/pam.d/imap
+%config(noreplace) %{_sysconfdir}/pam.d/pop
+%config(noreplace) %{_sysconfdir}/xinetd.d/imap
+%config(noreplace) %{_sysconfdir}/xinetd.d/ipop2
+%config(noreplace) %{_sysconfdir}/xinetd.d/ipop3
+# These need to be replaced (ie, can't use %%noreplace), or imaps/pop3s can fail on upgrade
+# do this in a %trigger or something not here... -- Rex
+%config(noreplace) %{_sysconfdir}/xinetd.d/imaps
+%config(noreplace) %{_sysconfdir}/xinetd.d/pop3s
+%attr(0600,root,root) %ghost %config(missingok,noreplace) %verify(not md5 size mtime) %{ssldir}/certs/imapd.pem
+%attr(0600,root,root) %ghost %config(missingok,noreplace) %verify(not md5 size mtime) %{ssldir}/certs/ipop3d.pem
+%{_mandir}/man8/*
+%{_sbindir}/ipop2d
+%{_sbindir}/ipop3d
+%{_sbindir}/imapd
+
+%files utils
+%{_bindir}/*
+%attr(2755, root, mail) %{_sbindir}/mlock
+%{_mandir}/man1/*
+%endif
+
 %ldconfig_scriptlets -n %{imap_libs}
 
-%files -n %{imap_libs}
-%doc LICENSE.txt NOTICE SUPPORT
+%files -n %{imap_libs} 
+%doc LICENSE.txt NOTICE SUPPORT 
 %doc docs/RELNOTES docs/*.txt
 %ghost %config(missingok,noreplace) %{_sysconfdir}/c-client.cf
 %{_libdir}/lib%{soname}.so.*
@@ -170,27 +307,53 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 %{_libdir}/libc-client.a
 %endif
 
+
 %changelog
-* Tue Jul 22 2025 Alexander Ursu <alexander.ursu@gmail.com> - 2007f-31
-- rebuild for Rocky Linux 9.6
+* Wed Feb 14 2024 Remi Collet <remi@remirepo.net> - 2007f-32
+- F40 build, add patch for GCC 14 [-Wimplicit-function-declaration]
+
+* Tue Feb 21 2023 Remi Collet <remi@remirepo.net> - 2007f-31
+- F38 build, disable parallel build as broken
 
 * Wed Feb 24 2021 Remi Collet <remi@remirepo.net> - 2007f-30
+- Rebuild for remirepo as dropped from F34
 - drop uw-imap and uw-imap-static and uw-imap-utils
   as only uw-imap-devel and libc-client needed
+
+* Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-27
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
+* Wed Jul 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-26
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
+* Fri Jan 31 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-25
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
+* Sat Jul 27 2019 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-24
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
+* Sun Feb 03 2019 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-23
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
+
+* Sat Jul 14 2018 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-22
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
 
 * Tue Apr 24 2018 Karsten Hopp <karsten@redhat.com> - 2007f-21
 - make sure LDFLAGS are used everywhere (rhbz#1541093)
 
 * Tue Feb 20 2018 Remi Collet <remi@remirepo.net> - 2007f-19
 - missing BR on C compiler
+- use ldconfig_scriptlets
+
+* Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-19
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
 
 * Tue Jan 30 2018 Remi Collet <rcollet@redhat.com> - 2007f-18
 - fix compatibility with OpenSSL 1.1 rhbz#1540020
   using patch from debian
 
-* Fri Mar 28 2014 Alexander Ursu <aursu@hostopia.com> - 2007f-17
-- disabled pop3, imap daemons and utils
-- disabled PAM
+* Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2007f-17
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
 
 * Mon Jul 31 2017 Rex Dieter <rdieter@fedoraproject.org> - 2007f-16
 - -devel for el7+ too (#1473520)
@@ -243,7 +406,7 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 - imap-2007f
 
 * Mon Jun 13 2011 Rex Dieter <rdieter@fedoraproject.org> 2007e-13
-- _with_system_libc_client option (el6+)
+- _with_system_libc_client option (el6+) 
 - tight deps via %%?_isa
 - drop extraneous Requires(post,postun): xinetd
 
@@ -258,7 +421,7 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 - use password-auth common PAM configuration instead of system-auth
   where available
 
-* Mon Aug 31 2009 Rex Dieter <rdieter@fedoraproject.org>
+* Mon Aug 31 2009 Rex Dieter <rdieter@fedoraproject.org> 
 - omit -devel, -static bits in EPEL builds (#518885)
 
 * Fri Aug 21 2009 Tomas Mraz <tmraz@redhat.com> - 2007e-9
@@ -309,7 +472,7 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 * Thu Mar 13 2008 Rex Dieter <rdieter@fedoraproject.org> 2007a-1
 - imap-2007a
 
-* Fri Feb 08 2008 Rex Dieter <rdieter@fedoraproject.org> 2007-3
+* Fri Feb 08 2008 Rex Dieter <rdieter@fedoraproject.org> 2007-3 
 - respin (gcc43)
 
 * Wed Jan 23 2008 Rex Dieter <rdieter@fedoraproject.org> 2007-2
@@ -394,7 +557,7 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 - omit static lib (for now, at least)
 
 * Mon Sep 25 2006 Rex Dieter <rexdieter[AT]users.sf.net> 2006-4
-- -devel-static: package static lib separately.
+- -devel-static: package static lib separately. 
 
 * Mon Sep 25 2006 Rex Dieter <rexdieter[AT]users.sf.net> 2006-3
 - License: Apache 2.0
@@ -404,13 +567,13 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 - change default (CREATEPROTO) driver to mix
 - Obsolete old libc-clients
 
-* Tue Aug 29 2006 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-6
+* Tue Aug 29 2006 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-6 
 - fc6 respin
 
 * Fri Aug 18 2006 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-5
 - cleanup, respin for fc6
 
-* Wed Mar 1 2006 Rex Dieter <rexdieter[AT]users.sf.net>
+* Wed Mar 1 2006 Rex Dieter <rexdieter[AT]users.sf.net> 
 - fc5: gcc/glibc respin
 
 * Thu Nov 17 2005 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-4
@@ -420,7 +583,7 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 * Thu Nov 17 2005 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-3
 - omit trailing whitespace in default c-client.cf
 
-* Wed Nov 16 2005 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-2
+* Wed Nov 16 2005 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-2 
 - rebuild for new openssl
 
 * Mon Sep 26 2005 Rex Dieter <rexdieter[AT]users.sf.net> 2004g-1
@@ -435,7 +598,7 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 
 * Fri Apr 29 2005 Rex Dieter <rexdieter[AT]users.sf.net> 1:2004d-1
 - 2004d
-- imap-libs -> lib%%{soname}%%{version} (ie, libc-client2004d), so we can
+- imap-libs -> lib%%{soname}%%{version} (ie, libc-client2004d), so we can 
   have multiple versions (shared-lib only) installed
 - move mlock to -utils.
 - revert RFC2301, locks out too many folks where SSL is unavailable
@@ -481,12 +644,12 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 * Wed Jul 07 2004 Rex Dieter <rexdieter at sf.net> 2004-0.fdr.1
 - imap-2004
 - use mlock, if available.
-- Since libc-client is an attrocious name choice, we'll trump it,
+- Since libc-client is an attrocious name choice, we'll trump it, 
   and provide imap, imap-libs, imap-devel instead (redhat bug #120873)
 
 * Wed Apr 07 2004 Kaj J. Niemi <kajtzu@fi.basen.net> 2002e-4
 - Use CFLAGS (and RPM_OPT_FLAGS) during the compilation
-- Build the .so through gcc instead of directly calling ld
+- Build the .so through gcc instead of directly calling ld 
 
 * Fri Mar  5 2004 Joe Orton <jorton@redhat.com> 2002e-3
 - install .so with permissions 0755
@@ -506,3 +669,4 @@ install -m644 ./src/osdep/tops-20/shortsym.h $RPM_BUILD_ROOT%{_includedir}/imap/
 * Sat Feb 14 2004 Kaj J. Niemi <kajtzu@fi.basen.net> 0:2002e-0.1
 - c-client 2002e is based on imap-2002d
 - Build shared version, build logic is copied from FreeBSD net/cclient
+

@@ -1,0 +1,260 @@
+diff -up ./src/mtest/mtest.c.old ./src/mtest/mtest.c
+--- ./src/mtest/mtest.c.old	2024-02-14 11:40:30.261192893 +0100
++++ ./src/mtest/mtest.c	2024-02-14 11:46:01.181007988 +0100
+@@ -594,8 +594,10 @@ void status (MAILSTREAM *stream)
+ 
+ void prompt (char *msg,char *txt)
+ {
++  char buf[100];
++
+   printf ("%s",msg);
+-  gets (txt);
++  fgets (buf, sizeof(buf)-1, stdin);
+ }
+ 
+ /* Interfaces to C-client */
+@@ -779,7 +781,7 @@ void smtptest (long debug)
+   puts (" Msg (end with a line with only a '.'):");
+   body->type = TYPETEXT;
+   *text = '\0';
+-  while (gets (line)) {
++  while (fgets (line, MAILTMPLEN-1, stdin)) {
+     if (line[0] == '.') {
+       if (line[1] == '\0') break;
+       else strcat (text,".");
+diff -up ./src/osdep/unix/mbx.c.old ./src/osdep/unix/mbx.c
+diff -up ./src/osdep/unix/mh.c.old ./src/osdep/unix/mh.c
+--- ./src/osdep/unix/mh.c.old	2024-02-14 11:30:01.915891303 +0100
++++ ./src/osdep/unix/mh.c	2024-02-14 11:35:04.771604394 +0100
+@@ -103,8 +103,8 @@ long mh_copy (MAILSTREAM *stream,char *s
+ 	      long options);
+ long mh_append (MAILSTREAM *stream,char *mailbox,append_t af,void *data);
+ 
+-int mh_select (struct direct *name);
+-int mh_numsort (const void *d1,const void *d2);
++int mh_select (const struct direct *name);
++int mh_numsort (const struct dirent **d1, const struct dirent **d2);
+ char *mh_file (char *dst,char *name);
+ long mh_canonicalize (char *pattern,char *ref,char *pat);
+ void mh_setdate (char *file,MESSAGECACHE *elt);
+@@ -1194,7 +1194,7 @@ long mh_append (MAILSTREAM *stream,char
+  * Returns: T to use file name, NIL to skip it
+  */
+ 
+-int mh_select (struct direct *name)
++int mh_select (const struct direct *name)
+ {
+   char c;
+   char *s = name->d_name;
+@@ -1209,10 +1209,10 @@ int mh_select (struct direct *name)
+  * Returns: negative if d1 < d2, 0 if d1 == d2, postive if d1 > d2
+  */
+ 
+-int mh_numsort (const void *d1,const void *d2)
++int mh_numsort (const struct dirent **d1,const struct dirent **d2)
+ {
+-  return atoi ((*(struct direct **) d1)->d_name) -
+-    atoi ((*(struct direct **) d2)->d_name);
++  return atoi ((*d1)->d_name) -
++    atoi ((*d2)->d_name);
+ }
+ 
+ 
+diff -up ./src/osdep/unix/mix.c.old ./src/osdep/unix/mix.c
+--- ./src/osdep/unix/mix.c.old	2024-02-14 11:36:11.066168376 +0100
++++ ./src/osdep/unix/mix.c	2024-02-14 11:38:56.009547651 +0100
+@@ -125,7 +125,7 @@ long mix_unsubscribe (MAILSTREAM *stream
+ long mix_create (MAILSTREAM *stream,char *mailbox);
+ long mix_delete (MAILSTREAM *stream,char *mailbox);
+ long mix_rename (MAILSTREAM *stream,char *old,char *newname);
+-int mix_rselect (struct direct *name);
++int mix_rselect (const struct direct *name);
+ MAILSTREAM *mix_open (MAILSTREAM *stream);
+ void mix_close (MAILSTREAM *stream,long options);
+ void mix_abort (MAILSTREAM *stream);
+@@ -140,8 +140,8 @@ THREADNODE *mix_thread (MAILSTREAM *stre
+ long mix_ping (MAILSTREAM *stream);
+ void mix_check (MAILSTREAM *stream);
+ long mix_expunge (MAILSTREAM *stream,char *sequence,long options);
+-int mix_select (struct direct *name);
+-int mix_msgfsort (const void *d1,const void *d2);
++int mix_select (const struct direct *name);
++int mix_msgfsort (const struct direct **d1, const struct direct **d2);
+ long mix_addset (SEARCHSET **set,unsigned long start,unsigned long size);
+ long mix_burp (MAILSTREAM *stream,MIXBURP *burp,unsigned long *reclaimed);
+ long mix_burp_check (SEARCHSET *set,size_t size,char *file);
+@@ -587,7 +587,7 @@ long mix_rename (MAILSTREAM *stream,char
+  * Returns: T if mix file name, NIL otherwise
+  */
+ 
+-int mix_rselect (struct direct *name)
++int mix_rselect (const struct direct *name)
+ {
+   return mix_dirfmttest (name->d_name);
+ }
+@@ -1146,7 +1146,7 @@ long mix_expunge (MAILSTREAM *stream,cha
+  * ".mix" with no suffix was used by experimental versions
+  */
+ 
+-int mix_select (struct direct *name)
++int mix_select (const struct direct *name)
+ {
+   char c,*s;
+ 				/* make sure name has prefix */
+@@ -1165,10 +1165,10 @@ int mix_select (struct direct *name)
+  * Returns: -1 if d1 < d2, 0 if d1 == d2, 1 d1 > d2
+  */
+ 
+-int mix_msgfsort (const void *d1,const void *d2)
++int mix_msgfsort (const struct direct **d1, const struct direct **d2)
+ {
+-  char *n1 = (*(struct direct **) d1)->d_name + sizeof (MIXNAME) - 1;
+-  char *n2 = (*(struct direct **) d2)->d_name + sizeof (MIXNAME) - 1;
++  char *n1 = (*d1)->d_name + sizeof (MIXNAME) - 1;
++  char *n2 = (*d2)->d_name + sizeof (MIXNAME) - 1;
+   return compare_ulong (*n1 ? strtoul (n1,NIL,16) : 0,
+ 			*n2 ? strtoul (n2,NIL,16) : 0);
+ }
+diff -up ./src/osdep/unix/mx.c.old ./src/osdep/unix/mx.c
+--- ./src/osdep/unix/mx.c.old	2024-02-14 11:32:55.546606542 +0100
++++ ./src/osdep/unix/mx.c	2024-02-14 11:35:01.619482481 +0100
+@@ -98,8 +98,8 @@ long mx_append (MAILSTREAM *stream,char
+ long mx_append_msg (MAILSTREAM *stream,char *flags,MESSAGECACHE *elt,
+ 		    STRING *st,SEARCHSET *set);
+ 
+-int mx_select (struct direct *name);
+-int mx_numsort (const void *d1,const void *d2);
++int mx_select (const struct direct *name);
++int mx_numsort (const struct direct **d1, const struct direct **d2);
+ char *mx_file (char *dst,char *name);
+ long mx_lockindex (MAILSTREAM *stream);
+ void mx_unlockindex (MAILSTREAM *stream);
+@@ -1110,7 +1110,7 @@ long mx_append_msg (MAILSTREAM *stream,c
+  * Returns: T to use file name, NIL to skip it
+  */
+ 
+-int mx_select (struct direct *name)
++int mx_select (const struct direct *name)
+ {
+   char c;
+   char *s = name->d_name;
+@@ -1125,10 +1125,10 @@ int mx_select (struct direct *name)
+  * Returns: negative if d1 < d2, 0 if d1 == d2, postive if d1 > d2
+  */
+ 
+-int mx_numsort (const void *d1,const void *d2)
++int mx_numsort (const struct direct **d1, const struct direct **d2)
+ {
+-  return atoi ((*(struct direct **) d1)->d_name) -
+-    atoi ((*(struct direct **) d2)->d_name);
++  return atoi ((*d1)->d_name) -
++    atoi ((*d2)->d_name);
+ }
+ 
+ 
+diff -up ./src/osdep/unix/news.c.old ./src/osdep/unix/news.c
+--- ./src/osdep/unix/news.c.old	2024-02-14 11:24:54.447999827 +0100
++++ ./src/osdep/unix/news.c	2024-02-14 11:28:34.028492204 +0100
+@@ -76,8 +76,8 @@ long news_create (MAILSTREAM *stream,cha
+ long news_delete (MAILSTREAM *stream,char *mailbox);
+ long news_rename (MAILSTREAM *stream,char *old,char *newname);
+ MAILSTREAM *news_open (MAILSTREAM *stream);
+-int news_select (struct direct *name);
+-int news_numsort (const void *d1,const void *d2);
++int news_select (const struct direct *name);
++int news_numsort (const struct dirent **d1, const struct dirent **d2);
+ void news_close (MAILSTREAM *stream,long options);
+ void news_fast (MAILSTREAM *stream,char *sequence,long flags);
+ void news_flags (MAILSTREAM *stream,char *sequence,long flags);
+@@ -402,7 +402,7 @@ MAILSTREAM *news_open (MAILSTREAM *strea
+  * Returns: T to use file name, NIL to skip it
+  */
+ 
+-int news_select (struct direct *name)
++int news_select (const struct direct *name)
+ {
+   char c;
+   char *s = name->d_name;
+@@ -417,10 +417,10 @@ int news_select (struct direct *name)
+  * Returns: negative if d1 < d2, 0 if d1 == d2, postive if d1 > d2
+  */
+ 
+-int news_numsort (const void *d1,const void *d2)
++int news_numsort (const struct direct **d1,const struct direct **d2)
+ {
+-  return atoi ((*(struct direct **) d1)->d_name) -
+-    atoi ((*(struct direct **) d2)->d_name);
++  return atoi ((*d1)->d_name) -
++    atoi ((*d2)->d_name);
+ }
+ 
+ 
+diff -up ./src/osdep/unix/os_lnx.c.old ./src/osdep/unix/os_lnx.c
+--- ./src/osdep/unix/os_lnx.c.old	2024-02-14 11:18:04.345232578 +0100
++++ ./src/osdep/unix/os_lnx.c	2024-02-14 11:52:20.461698968 +0100
+@@ -52,3 +52,4 @@ extern int errno;		/* just in case */
+ #include "gr_waitp.c"
+ #include "tz_sv4.c"
+ #include "flocklnx.c"
++#include "utime.c"
+diff -up ./src/osdep/unix/os_lnx.h.old ./src/osdep/unix/os_lnx.h
+--- ./src/osdep/unix/os_lnx.h.old	2024-02-14 10:36:59.233259371 +0100
++++ ./src/osdep/unix/os_lnx.h	2024-02-14 11:03:38.711950243 +0100
+@@ -58,7 +58,10 @@
+ #define direct dirent
+ 
+ #define flock safe_flock
++int safe_flock (int fd,int op);
+ 
++#define utime portable_utime
++int portable_utime (char *file,time_t timep[2]);
+ 
+ #include "env_unix.h"
+ #include "fs.h"
+diff -up ./src/osdep/unix/os_slx.c.old ./src/osdep/unix/os_slx.c
+--- ./src/osdep/unix/os_slx.c.old	2024-02-14 11:48:57.887852515 +0100
++++ ./src/osdep/unix/os_slx.c	2024-02-14 11:51:59.614891495 +0100
+@@ -54,3 +54,4 @@ extern int errno;		/* just in case */
+ #include "gr_waitp.c"
+ #include "tz_sv4.c"
+ #include "flocklnx.c"
++#include "utime.c"
+diff -up ./src/osdep/unix/os_slx.h.old ./src/osdep/unix/os_slx.h
+--- ./src/osdep/unix/os_slx.h.old	2024-02-14 11:20:38.630160269 +0100
++++ ./src/osdep/unix/os_slx.h	2024-02-14 11:20:48.462538036 +0100
+@@ -58,6 +58,10 @@
+ #define direct dirent
+ 
+ #define flock safe_flock
++int safe_flock (int fd,int op);
++
++#define utime portable_utime
++int portable_utime (char *file,time_t timep[2]);
+ 
+ 
+ #include "env_unix.h"
+diff -up ./src/osdep/unix/utime.c.old ./src/osdep/unix/utime.c
+--- ./src/osdep/unix/utime.c.old	2024-02-14 11:55:11.134309748 +0100
++++ ./src/osdep/unix/utime.c	2024-02-14 11:55:20.475671575 +0100
+@@ -27,18 +27,18 @@
+  */
+ 
+ #undef utime
++#include <utime.h>
+ 
+ /* Portable utime() that takes it args like real Unix systems
+  * Accepts: file path
+  *	    traditional utime() argument
+  * Returns: utime() results
+  */
+-
++	
+ int portable_utime (char *file,time_t timep[2])
+ {
+   struct utimbuf times;
+-				/* in case there's other cruft there */
+-  memset (&times,0,sizeof (struct utimbuf));
++
+   times.actime = timep[0];	/* copy the portable values */
+   times.modtime = timep[1];
+   return utime (file,&times);	/* now call the SVR4 routine */

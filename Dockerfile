@@ -3,6 +3,8 @@ FROM aursu/rpmbuild:${os}-build
 
 USER root
 RUN dnf -y install \
+        krb5-devel \
+        pam-devel \
         openssl-devel \
     && dnf clean all && rm -rf /var/cache/dnf
 

@@ -6,7 +6,16 @@ services:
       context: .
       args:
         os: $RL9
+  rocky10build:
+    volumes:
+      - rpm10rocky:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      args:
+        os: $RL10
 
 volumes:
   rpm9rocky:
     name: rpm9rocky
+  rpm10rocky:
+    name: rpm10rocky
